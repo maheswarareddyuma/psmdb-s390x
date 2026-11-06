@@ -14,10 +14,11 @@ Percona publishes packages for x86_64 and aarch64 only. This project adds the sm
 
 ## What the patch changes
 
-Upstream Percona marks two bundled libraries as x86_64/aarch64-only, which makes Bazel silently skip `mongod` and `mongos` on s390x. [`patches/psmdb-8.3.13-4-s390x.patch`](patches/psmdb-8.3.13-4-s390x.patch):
+Percona's bundled libraries only carry x86_64/aarch64 configuration. Two are marked x86/ARM-only, which makes Bazel silently skip `mongod` and `mongos` on s390x; a third has no s390x `config.h`. [`patches/psmdb-8.3.13-4-s390x.patch`](patches/psmdb-8.3.13-4-s390x.patch):
 
 - **libbson** — adds `build_linux_s390x/` config with big-endian byte order (`BSON_BYTE_ORDER 4321`, `BSON_EXTRA_ALIGN 1`), matching upstream MongoDB's own s390x config.
 - **aws-sdk-cpp** (used by hot backup to S3) — adds a `platform/linux_s390x/` config with CPU-specific acceleration off, so the portable C code paths are used.
+- **libarchive** (used by hot backup) — adds `platform/build_linux_s390x/config.h`. The x86_64 and aarch64 configs are identical and libarchive handles byte order in portable code, so s390x uses the same settings.
 
 The build also switches the allocator to `tcmalloc-gperf`, because Percona's default `tcmalloc-google` does not support s390x.
 
