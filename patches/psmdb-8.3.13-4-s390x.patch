@@ -1,0 +1,409 @@
+diff --git a/src/third_party/aws-sdk-cpp/BUILD.bazel b/src/third_party/aws-sdk-cpp/BUILD.bazel
+index eab46b8f..c6d8fc08 100644
+--- a/src/third_party/aws-sdk-cpp/BUILD.bazel
++++ b/src/third_party/aws-sdk-cpp/BUILD.bazel
+@@ -11,6 +11,7 @@ package(default_visibility = ["//visibility:public"])
+ TARGET_COMPATIBILITY = select({
+     "//bazel/config:linux_aarch64": [],
+     "//bazel/config:linux_x86_64": [],
++    "//bazel/config:linux_s390x": [],
+     "//conditions:default": ["@platforms//:incompatible"],
+ })
+ 
+@@ -19,18 +20,21 @@ AWS_C_COMMON_INCLUDE = select({
+     # TODO https://jira.mongodb.org/browse/SERVER-74961: Support other platforms.
+     "@platforms//cpu:x86_64": ["-Isrc/third_party/aws-sdk-cpp/platform/linux_x86_64/crt/aws-crt-cpp/crt/aws-c-common/generated/include"],
+     "@platforms//cpu:aarch64": ["-Isrc/third_party/aws-sdk-cpp/platform/linux_aarch64/crt/aws-crt-cpp/crt/aws-c-common/generated/include"],
++    "@platforms//cpu:s390x": ["-Isrc/third_party/aws-sdk-cpp/platform/linux_s390x/crt/aws-crt-cpp/crt/aws-c-common/generated/include"],
+     "//conditions:default": [],
+ })
+ 
+ AWS_C_COMMON_HEADER_DIR = select({
+     "@platforms//cpu:x86_64": ["platform/linux_x86_64/crt/aws-crt-cpp/crt/aws-c-common/generated/include"],
+     "@platforms//cpu:aarch64": ["platform/linux_aarch64/crt/aws-crt-cpp/crt/aws-c-common/generated/include"],
++    "@platforms//cpu:s390x": ["platform/linux_s390x/crt/aws-crt-cpp/crt/aws-c-common/generated/include"],
+     "//conditions:default": [],
+ })
+ 
+ AWS_C_COMMON_HEADER_FILE = select({
+     "@platforms//cpu:x86_64": ["platform/linux_x86_64/crt/aws-crt-cpp/crt/aws-c-common/generated/include/aws/common/config.h"],
+     "@platforms//cpu:aarch64": ["platform/linux_aarch64/crt/aws-crt-cpp/crt/aws-c-common/generated/include/aws/common/config.h"],
++    "@platforms//cpu:s390x": ["platform/linux_s390x/crt/aws-crt-cpp/crt/aws-c-common/generated/include/aws/common/config.h"],
+     "//conditions:default": [],
+ })
+ 
+@@ -39,6 +43,7 @@ AWS_CRT_CPP_INCLUDE = select({
+     # TODO https://jira.mongodb.org/browse/SERVER-74961: Support other platforms.
+     "@platforms//cpu:x86_64": ["-Isrc/third_party/aws-sdk-cpp/platform/linux_x86_64/crt/aws-crt-cpp/generated/include"],
+     "@platforms//cpu:aarch64": ["-Isrc/third_party/aws-sdk-cpp/platform/linux_aarch64/crt/aws-crt-cpp/generated/include"],
++    "@platforms//cpu:s390x": ["-Isrc/third_party/aws-sdk-cpp/platform/linux_s390x/crt/aws-crt-cpp/generated/include"],
+     "//conditions:default": [],
+ })
+ 
+@@ -95,6 +100,7 @@ mongo_cc_library(
+         # TODO https://jira.mongodb.org/browse/SERVER-74961: Support other platforms.
+         "@platforms//cpu:x86_64": glob(["platform/linux_x86_64/crt/aws-crt-cpp/crt/aws-c-common/generated/include/aws/common/*.h"]),
+         "@platforms//cpu:aarch64": glob(["platform/linux_aarch64/crt/aws-crt-cpp/crt/aws-c-common/generated/include/aws/common/*.h"]),
++        "@platforms//cpu:s390x": glob(["platform/linux_s390x/crt/aws-crt-cpp/crt/aws-c-common/generated/include/aws/common/*.h"]),
+         "//conditions:default": [],
+     }),
+     copts = AWS_C_COMMON_INCLUDE + [
+@@ -904,6 +910,7 @@ mongo_cc_library(
+         # TODO https://jira.mongodb.org/browse/SERVER-74961: Support other platforms.
+         "@platforms//cpu:x86_64": glob(["platform/linux_x86_64/crt/aws-crt-cpp/generated/include/aws/crt/*.h"]),
+         "@platforms//cpu:aarch64": glob(["platform/linux_aarch64/crt/aws-crt-cpp/generated/include/aws/crt/*.h"]),
++        "@platforms//cpu:s390x": glob(["platform/linux_s390x/crt/aws-crt-cpp/generated/include/aws/crt/*.h"]),
+         "//conditions:default": [],
+     }),
+     copts = AWS_CRT_CPP_INCLUDES + [
+diff --git a/src/third_party/aws-sdk-cpp/platform/linux_s390x/crt/aws-crt-cpp/crt/aws-c-common/generated/include/aws/common/config.h b/src/third_party/aws-sdk-cpp/platform/linux_s390x/crt/aws-crt-cpp/crt/aws-c-common/generated/include/aws/common/config.h
+new file mode 100644
+index 00000000..83c8f001
+--- /dev/null
++++ b/src/third_party/aws-sdk-cpp/platform/linux_s390x/crt/aws-crt-cpp/crt/aws-c-common/generated/include/aws/common/config.h
+@@ -0,0 +1,33 @@
++#ifndef AWS_COMMON_CONFIG_H
++#define AWS_COMMON_CONFIG_H
++
++/**
++ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
++ * SPDX-License-Identifier: Apache-2.0.
++ */
++
++/*
++ * This header exposes compiler feature test results determined during cmake
++ * configure time to inline function implementations. The macros defined here
++ * should be considered to be an implementation detail, and can change at any
++ * time.
++ */
++#define AWS_HAVE_GCC_OVERFLOW_MATH_EXTENSIONS
++/* #undef AWS_HAVE_GCC_INLINE_ASM */
++/* #undef AWS_HAVE_MSVC_INTRINSICS_X64 */
++#define AWS_HAVE_POSIX_LARGE_FILE_SUPPORT
++#define AWS_HAVE_EXECINFO
++/* #undef AWS_HAVE_WINAPI_DESKTOP */
++#define AWS_HAVE_LINUX_IF_LINK_H
++/* #undef AWS_HAVE_AVX2_INTRINSICS */
++/* #undef AWS_HAVE_AVX512_INTRINSICS */
++/* #undef AWS_HAVE_MM256_EXTRACT_EPI64 */
++/* #undef AWS_HAVE_CLMUL */
++/* #undef AWS_HAVE_ARM32_CRC */
++/* #undef AWS_HAVE_ARMv8_1 */
++/* #undef AWS_ARCH_ARM64 */
++/* #undef AWS_ARCH_INTEL */
++/* #undef AWS_ARCH_INTEL_X64 */
++/* #undef AWS_USE_CPU_EXTENSIONS */
++
++#endif
+diff --git a/src/third_party/aws-sdk-cpp/platform/linux_s390x/crt/aws-crt-cpp/generated/include/aws/crt/Config.h b/src/third_party/aws-sdk-cpp/platform/linux_s390x/crt/aws-crt-cpp/generated/include/aws/crt/Config.h
+new file mode 100644
+index 00000000..55f8cdd7
+--- /dev/null
++++ b/src/third_party/aws-sdk-cpp/platform/linux_s390x/crt/aws-crt-cpp/generated/include/aws/crt/Config.h
+@@ -0,0 +1,11 @@
++#pragma once
++/**
++ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
++ * SPDX-License-Identifier: Apache-2.0.
++ */
++
++#define AWS_CRT_CPP_VERSION "0.29.7"
++#define AWS_CRT_CPP_VERSION_MAJOR 0
++#define AWS_CRT_CPP_VERSION_MINOR 29
++#define AWS_CRT_CPP_VERSION_PATCH 7
++#define AWS_CRT_CPP_GIT_HASH "b5577fa39c3a11f09c06db10ac6eaaca3910cbe2"
+diff --git a/src/third_party/libbson/BUILD.bazel b/src/third_party/libbson/BUILD.bazel
+index 032767f1..4bed8886 100644
+--- a/src/third_party/libbson/BUILD.bazel
++++ b/src/third_party/libbson/BUILD.bazel
+@@ -43,6 +43,7 @@ mongo_cc_library(
+         "dist/src/libbson/src/jsonsl/*.h",
+     ]) + select({
+         "@platforms//os:linux": glob(["build_linux/**/*.h"]),
++        "//bazel/config:linux_s390x": glob(["build_linux_s390x/**/*.h"]),
+         "//conditions:default": [],
+     }),
+     copts = [
+@@ -65,6 +66,10 @@ mongo_cc_library(
+             "build_linux",
+             "build_linux/bson",
+         ],
++        "//bazel/config:linux_s390x": [
++            "build_linux_s390x",
++            "build_linux_s390x/bson",
++        ],
+         "//conditions:default": [],
+     }),
+     local_defines = [
+@@ -73,6 +78,7 @@ mongo_cc_library(
+     target_compatible_with = select({
+         "//bazel/config:linux_aarch64": [],
+         "//bazel/config:linux_x86_64": [],
++        "//bazel/config:linux_s390x": [],
+         "//conditions:default": ["@platforms//:incompatible"],
+     }),
+ )
+diff --git a/src/third_party/libbson/build_linux_s390x/bson/bson-config.h b/src/third_party/libbson/build_linux_s390x/bson/bson-config.h
+new file mode 100644
+index 00000000..6e11f616
+--- /dev/null
++++ b/src/third_party/libbson/build_linux_s390x/bson/bson-config.h
+@@ -0,0 +1,134 @@
++/*
++ * Copyright 2009-present MongoDB, Inc.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *   http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#if !defined(BSON_INSIDE) && !defined(BSON_COMPILATION)
++#error "Only <bson/bson.h> can be included directly."
++#endif
++
++#ifndef BSON_CONFIG_H
++#define BSON_CONFIG_H
++
++/*
++ * Define to 1234 for Little Endian, 4321 for Big Endian.
++ */
++#define BSON_BYTE_ORDER 4321
++
++
++/*
++ * Define to 1 if you have stdbool.h
++ */
++#define BSON_HAVE_STDBOOL_H 1
++#if BSON_HAVE_STDBOOL_H != 1
++# undef BSON_HAVE_STDBOOL_H
++#endif
++
++
++/*
++ * Define to 1 for POSIX-like systems, 2 for Windows.
++ */
++#define BSON_OS 1
++
++
++/*
++ * Define to 1 if you have clock_gettime() available.
++ */
++#define BSON_HAVE_CLOCK_GETTIME 1
++#if BSON_HAVE_CLOCK_GETTIME != 1
++# undef BSON_HAVE_CLOCK_GETTIME
++#endif
++
++
++/*
++ * Define to 1 if you have strings.h available on your platform.
++ */
++#define BSON_HAVE_STRINGS_H 1
++#if BSON_HAVE_STRINGS_H != 1
++# undef BSON_HAVE_STRINGS_H
++#endif
++
++
++/*
++ * Define to 1 if you have strnlen available on your platform.
++ */
++#define BSON_HAVE_STRNLEN 1
++#if BSON_HAVE_STRNLEN != 1
++# undef BSON_HAVE_STRNLEN
++#endif
++
++
++/*
++ * Define to 1 if you have snprintf available on your platform.
++ */
++#define BSON_HAVE_SNPRINTF 1
++#if BSON_HAVE_SNPRINTF != 1
++# undef BSON_HAVE_SNPRINTF
++#endif
++
++
++/*
++ * Define to 1 if you have gmtime_r available on your platform.
++ */
++#define BSON_HAVE_GMTIME_R 1
++#if BSON_HAVE_GMTIME_R != 1
++# undef BSON_HAVE_GMTIME_R
++#endif
++
++
++/*
++ * Define to 1 if you have struct timespec available on your platform.
++ */
++#define BSON_HAVE_TIMESPEC 1
++#if BSON_HAVE_TIMESPEC != 1
++# undef BSON_HAVE_TIMESPEC
++#endif
++
++
++/*
++ * Define to 1 if you want extra aligned types in libbson
++ */
++#define BSON_EXTRA_ALIGN 1
++#if BSON_EXTRA_ALIGN != 1
++# undef BSON_EXTRA_ALIGN
++#endif
++
++
++/*
++ * Define to 1 if you have rand_r available on your platform.
++ */
++#define BSON_HAVE_RAND_R 1
++#if BSON_HAVE_RAND_R != 1
++# undef BSON_HAVE_RAND_R
++#endif
++
++
++/*
++ * Define to 1 if you have strlcpy available on your platform.
++ */
++#define BSON_HAVE_STRLCPY 0
++#if BSON_HAVE_STRLCPY != 1
++# undef BSON_HAVE_STRLCPY
++#endif
++
++
++/*
++ * Define to 1 if you have aligned_alloc available on your platform.
++ */
++#define BSON_HAVE_ALIGNED_ALLOC 0
++#if BSON_HAVE_ALIGNED_ALLOC != 1
++# undef BSON_HAVE_ALIGNED_ALLOC
++#endif
++
++#endif /* BSON_CONFIG_H */
+diff --git a/src/third_party/libbson/build_linux_s390x/bson/bson-version.h b/src/third_party/libbson/build_linux_s390x/bson/bson-version.h
+new file mode 100644
+index 00000000..f5505699
+--- /dev/null
++++ b/src/third_party/libbson/build_linux_s390x/bson/bson-version.h
+@@ -0,0 +1,102 @@
++/*
++ * Copyright 2009-present MongoDB, Inc.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *   http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++
++#if !defined(BSON_INSIDE) && !defined(BSON_COMPILATION)
++#error "Only <bson/bson.h> can be included directly."
++#endif
++
++// clang-format off
++
++#ifndef BSON_VERSION_H
++#define BSON_VERSION_H
++
++
++/**
++ * BSON_MAJOR_VERSION:
++ *
++ * BSON major version component (e.g. 1 if %BSON_VERSION is 1.2.3)
++ */
++#define BSON_MAJOR_VERSION (1)
++
++
++/**
++ * BSON_MINOR_VERSION:
++ *
++ * BSON minor version component (e.g. 2 if %BSON_VERSION is 1.2.3)
++ */
++#define BSON_MINOR_VERSION (30)
++
++
++/**
++ * BSON_MICRO_VERSION:
++ *
++ * BSON micro version component (e.g. 3 if %BSON_VERSION is 1.2.3)
++ */
++#define BSON_MICRO_VERSION (10)
++
++
++/**
++ * BSON_PRERELEASE_VERSION:
++ *
++ * BSON prerelease version component (e.g. pre if %BSON_VERSION is 1.2.3-pre)
++ */
++#define BSON_PRERELEASE_VERSION ()
++
++/**
++ * BSON_VERSION:
++ *
++ * BSON version.
++ */
++#define BSON_VERSION (1.30.10)
++
++
++/**
++ * BSON_VERSION_S:
++ *
++ * BSON version, encoded as a string, useful for printing and
++ * concatenation.
++ */
++#define BSON_VERSION_S "1.30.10"
++
++
++/**
++ * BSON_VERSION_HEX:
++ *
++ * BSON version, encoded as an hexadecimal number, useful for
++ * integer comparisons.
++ */
++#define BSON_VERSION_HEX (BSON_MAJOR_VERSION << 24 | \
++                          BSON_MINOR_VERSION << 16 | \
++                          BSON_MICRO_VERSION << 8)
++
++
++/**
++ * BSON_CHECK_VERSION:
++ * @major: required major version
++ * @minor: required minor version
++ * @micro: required micro version
++ *
++ * Compile-time version checking. Evaluates to %TRUE if the version
++ * of BSON is greater than or equal to the required one.
++ */
++#define BSON_CHECK_VERSION(major,minor,micro)   \
++        (BSON_MAJOR_VERSION > (major) || \
++         (BSON_MAJOR_VERSION == (major) && BSON_MINOR_VERSION > (minor)) || \
++         (BSON_MAJOR_VERSION == (major) && BSON_MINOR_VERSION == (minor) && \
++          BSON_MICRO_VERSION >= (micro)))
++
++#endif /* BSON_VERSION_H */
+diff --git a/src/third_party/libbson/build_linux_s390x/common-config.h b/src/third_party/libbson/build_linux_s390x/common-config.h
+new file mode 100644
+index 00000000..a40df739
+--- /dev/null
++++ b/src/third_party/libbson/build_linux_s390x/common-config.h
+@@ -0,0 +1,10 @@
++#ifndef COMMON_CONFIG_H
++#define COMMON_CONFIG_H
++
++#define MONGOC_ENABLE_DEBUG_ASSERTIONS 0
++
++#if MONGOC_ENABLE_DEBUG_ASSERTIONS != 1
++#  undef MONGOC_ENABLE_DEBUG_ASSERTIONS
++#endif
++
++#endif
