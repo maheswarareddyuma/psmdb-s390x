@@ -10,7 +10,11 @@ Percona publishes packages for x86_64 and aarch64 only. This project adds the sm
 
 | Version | Build | Tests | Packages |
 |---|---|---|---|
-| 8.3.13-4 | in progress (RHEL 9.8, s390x) | not yet | not yet |
+| 8.3.13-4 | ✅ RHEL 9.8 s390x, 18 h on 2 vCPU / 4 GB | ✅ smoke test (see below) | not yet |
+
+`mongod --version` reports `8.3.13-4`, `distarch: s390x`, allocator `tcmalloc-gperf`, and all Percona features (TDE, HotBackup, Auditing, LDAP, Kerberos, OIDC, MemoryEngine, FIPSMode, ...).
+
+[`smoke-test.sh`](smoke-test.sh) passes on s390x: start with encryption at rest (key file) and audit log, insert/query/index 1000 docs (including double round-trips), data file encrypted on disk, `createBackup` hot backup, restore from that backup with the same key, audit events written. Not yet tested: `perconadecrypt` on a real rollback file, Vault/KMIP key management, LDAP, hot backup to S3, and the full resmoke suites.
 
 ## What the patch changes
 
