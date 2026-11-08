@@ -30,3 +30,8 @@ GitPython
 oauthlib
 pkce
 requests-oauthlib
+# x509/mkcert.py (test TLS certificates)
+cryptography
+pyOpenSSL
+asn1crypto
+ecdsa

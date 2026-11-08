@@ -25,6 +25,13 @@ cp -fL "$B"/install/bin/{mongod,mongos,mongo} "$B/src/mongo/tools/perconadecrypt
        "$B/src/mongo/tools/mongobridge_tool/mongobridge" "$BIN/"
 . "$VENV/bin/activate"
 cd "$SRC"
+# Test TLS certificates, expected in <installDir>/x509. Bazel's //x509:generate_main_certificates
+# needs Rust on s390x (no pinned cryptography wheel), so run its generator script directly.
+if [ ! -f "$BIN/x509/ca.pem" ]; then
+  python -c 'import json, types; ns = {"json": types.SimpleNamespace(encode=json.dumps)}; exec(open("x509/main_certs_def.bzl").read(), ns); print(ns["certs_def"])' > "$OUT/certs.json"
+  mkdir -p "$BIN/x509"
+  python x509/mkcert.py "$OUT/certs.json" --mkcrl --quiet --output "$BIN/x509" > /dev/null
+fi
 for s in $SUITES; do
   start=$(date +%s)
   python buildscripts/resmoke.py run --suites="$s" --installDir="$BIN" --dbpathPrefix="$OUT/data" \

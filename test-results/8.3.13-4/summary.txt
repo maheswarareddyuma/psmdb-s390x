@@ -1,0 +1,10 @@
+2026-11-07 23:10:56  percona_no_passthrough_with_mongod  exit=0  0min  All 5 test(s) passed in 5.06 seconds.
+2026-11-07 23:11:12  tde_cbc  exit=0  0min  All 4 test(s) passed in 15.02 seconds.
+2026-11-07 23:11:23  tde_gcm  exit=0  0min  All 4 test(s) passed in 9.66 seconds.
+2026-11-07 23:13:45  audit  exit=0  2min  All 32 test(s) passed in 140.34 seconds.
+2026-11-07 23:14:06  redaction  exit=0  0min  All 9 test(s) passed in 18.66 seconds.
+2026-11-07 23:14:26  backup  exit=0  0min  All 11 test(s) passed in 17.85 seconds.
+2026-11-07 23:15:40  backup_tde_cbc  exit=0  1min  All 13 test(s) passed in 72.69 seconds.
+2026-11-07 23:16:33  backup_tde_gcm  exit=0  0min  All 13 test(s) passed in 50.41 seconds.
+2026-11-07 23:35:53  core_tde_cbc  exit=1  19min  4390 test(s) ran in 1155.22 seconds (4389 succeeded, 0 were skipped, 1 failed, 0 errored)
+2026-11-07 23:57:28  core  exit=1  21min  4397 test(s) ran in 1288.70 seconds (4396 succeeded, 0 were skipped, 1 failed, 0 errored)

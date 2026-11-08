@@ -1,0 +1,10 @@
+2026-11-07 08:46:03  percona_no_passthrough_with_mongod  exit=0  0min  pass=3
+2026-11-07 08:56:13  tde_cbc  exit=1  10min  fail=1 pass=1
+2026-11-07 09:06:20  tde_gcm  exit=1  10min  fail=1 pass=1
+2026-11-07 09:08:04  audit  exit=1  1min  fail=4 pass=26
+2026-11-07 09:38:16  redaction  exit=1  30min  fail=3 pass=4
+2026-11-07 09:38:36  backup  exit=0  0min  pass=9
+2026-11-07 09:49:00  backup_tde_cbc  exit=1  10min  fail=1 pass=10
+2026-11-07 09:59:26  backup_tde_gcm  exit=1  10min  fail=1 pass=10
+2026-11-07 10:08:03  core_tde_cbc  exit=3  8min  fail=2 pass=2534
+2026-11-07 10:16:42  core  exit=3  8min  fail=2 pass=2534

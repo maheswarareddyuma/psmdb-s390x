@@ -10,7 +10,7 @@ Percona publishes packages for x86_64 and aarch64 only. This project adds the sm
 
 | Version | Platform | Build | Tests | Packages |
 |---|---|---|---|---|
-| 8.3.13-4 | RHEL 9.8, s390x | ✅ | see [TEST-RESULTS.md](TEST-RESULTS.md) | [Release](https://github.com/maheswarareddyuma/psmdb-s390x/releases/tag/v8.3.13-4) |
+| 8.3.13-4 | RHEL 9.8, s390x | ✅ | ✅ 2,954 / 2,954 test files passed ([TEST-RESULTS.md](TEST-RESULTS.md)) | [Release](https://github.com/maheswarareddyuma/psmdb-s390x/releases/tag/v8.3.13-4) |
 
 `mongod --version` reports `8.3.13-4`, `distarch: s390x`, allocator `tcmalloc-gperf`, and every Percona feature: TDE (encryption at rest), HotBackup, Auditing, LDAP, Kerberos, OIDC, AWS IAM, MemoryEngine, FIPSMode, LogRedaction, ngram.
 
@@ -124,7 +124,13 @@ Results go to `~/test-results/`: one `.log` and one `.json` report per suite, pl
 | `core_tde_cbc` | MongoDB core tests, Percona encryption config | ~1,450 core tests with encryption at rest on |
 | `core` | MongoDB | ~1,450 core tests |
 
-The full suites need hours on a 2-vCPU machine. Use `JOBS=N` on bigger machines.
+All of them together take about 1 hour on a 2-vCPU machine. Use `JOBS=N` on bigger machines.
+
+Before running, on the test machine:
+
+- **Open files:** `run-tests.sh` raises its limit to 64,000 (MongoDB needs that many). If the hard limit is lower, raise it in `/etc/security/limits.conf` first.
+- **Hostname:** replica-set tests connect through the machine's hostname. If it resolves to an address the machine can't reach itself (common on cloud VMs: `No route to host`), add `127.0.0.1 <hostname>` to `/etc/hosts`. The script warns when this looks wrong.
+- **TLS test certificates** are generated automatically into `~/test-results/bin/x509`.
 
 ## What the patch changes
 
@@ -138,7 +144,7 @@ The build also uses the `tcmalloc-gperf` allocator, because Percona's default `t
 
 ## Not tested yet
 
-`perconadecrypt` on a real rollback file, Vault/KMIP key servers, LDAP/Kerberos, hot backup to S3, sharding and replication suites, and long-running stress tests.
+`perconadecrypt` on a real rollback file, Vault/KMIP key servers, LDAP/Kerberos, OIDC, hot backup to S3, the dedicated `replica_sets*`/`sharding*`/`concurrency*` suites, C++ unit tests, and long-running stress tests.
 
 ## License
 
