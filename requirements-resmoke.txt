@@ -1,0 +1,32 @@
+# Minimal Python packages for buildscripts/resmoke.py on s390x (Python 3.12).
+# The full pyproject.toml dependency set includes packages that don't build on s390x.
+psutil>=6,<7
+pymongo==4.12.0
+PyYAML
+requests
+typing-extensions
+typer>=0.12,<0.13
+tenacity
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-common
+mock
+filelock
+packaging
+toml
+distro
+dnspython
+pexpect
+PyJWT
+bazel-runfiles
+curatorbin
+retry
+timeout-decorator
+structlog
+boto3
+PyGithub
+evergreen-py>=3.15,<4
+GitPython
+oauthlib
+pkce
+requests-oauthlib

@@ -1,53 +1,145 @@
 # psmdb-s390x
 
-Unofficial, community builds of **Percona Server for MongoDB** (Community edition) for **Linux on IBM Z / LinuxONE (s390x)**.
+Unofficial community builds of **Percona Server for MongoDB** (Community edition) for **Linux on IBM Z / LinuxONE (s390x)**: RPMs, plain binaries, the patch and scripts to build them yourself, and test results from Percona's and MongoDB's own test suites.
 
-Percona publishes packages for x86_64 and aarch64 only. This project adds the small changes needed to build on s390x (big-endian) and aims to publish RPMs for RHEL 9 s390x.
+Percona publishes packages for x86_64 and aarch64 only. This project adds the small source changes needed for s390x (big-endian).
 
-> Not affiliated with or endorsed by Percona or MongoDB, Inc. "Percona" and "MongoDB" are trademarks of their respective owners.
+> **Unofficial.** Not affiliated with or endorsed by Percona or MongoDB, Inc. "Percona" and "MongoDB" are trademarks of their respective owners. Test it yourself before trusting production data to it.
 
 ## Status
 
-| Version | Build | Tests | Packages |
-|---|---|---|---|
-| 8.3.13-4 | ✅ RHEL 9.8 s390x, 18 h on 2 vCPU / 4 GB | ✅ smoke test (see below) | not yet |
+| Version | Platform | Build | Tests | Packages |
+|---|---|---|---|---|
+| 8.3.13-4 | RHEL 9.8, s390x | ✅ | see [TEST-RESULTS.md](TEST-RESULTS.md) | [Release](https://github.com/maheswarareddyuma/psmdb-s390x/releases/tag/v8.3.13-4) |
 
-`mongod --version` reports `8.3.13-4`, `distarch: s390x`, allocator `tcmalloc-gperf`, and all Percona features (TDE, HotBackup, Auditing, LDAP, Kerberos, OIDC, MemoryEngine, FIPSMode, ...).
+`mongod --version` reports `8.3.13-4`, `distarch: s390x`, allocator `tcmalloc-gperf`, and every Percona feature: TDE (encryption at rest), HotBackup, Auditing, LDAP, Kerberos, OIDC, AWS IAM, MemoryEngine, FIPSMode, LogRedaction, ngram.
 
-[`smoke-test.sh`](smoke-test.sh) passes on s390x: start with encryption at rest (key file) and audit log, insert/query/index 1000 docs (including double round-trips), data file encrypted on disk, `createBackup` hot backup, restore from that backup with the same key, audit events written. Not yet tested: `perconadecrypt` on a real rollback file, Vault/KMIP key management, LDAP, hot backup to S3, and the full resmoke suites.
+## Install (RHEL 9 s390x)
+
+Requirements: RHEL 9 (or a rebuild) on s390x with **OpenSSL 3.4 or newer**. Tested on RHEL 9.8, which ships OpenSSL 3.5.
+
+```bash
+V=8.3.13-4; R=https://github.com/maheswarareddyuma/psmdb-s390x/releases/download/v$V
+sudo dnf install -y \
+  $R/psmdb-s390x-$V.unofficial.el9.s390x.rpm \
+  $R/psmdb-s390x-server-$V.unofficial.el9.s390x.rpm \
+  $R/psmdb-s390x-mongos-$V.unofficial.el9.s390x.rpm
+sudo systemctl enable --now mongod
+```
+
+| Package | Contents |
+|---|---|
+| `psmdb-s390x-server` | `mongod`, `perconadecrypt`, `mongobridge`, systemd unit, `/etc/mongod.conf`, SELinux module, Percona helper scripts |
+| `psmdb-s390x-mongos` | `mongos` |
+| `psmdb-s390x-shell` | legacy `mongo` shell (used by the test suites; use `mongosh` for day-to-day work) |
+| `psmdb-s390x` | metapackage: server + mongos |
+
+Data goes in `/var/lib/mongo` and logs in `/var/log/mongo`, as with Percona's own RHEL packages. Access control is **off** by default; run `sudo percona-server-mongodb-enable-auth.sh` to turn it on. The packages conflict with Percona's and MongoDB's official packages because they install the same files.
+
+**Plain binaries**: `psmdb-8.3.13-4-s390x-el9.tar.xz` in the release has `bin/{mongod,mongos,mongo,mongobridge,perconadecrypt}`. Verify downloads with `SHA256SUMS`.
+
+## Build it yourself
+
+Tested on RHEL 9.8 s390x with 2 vCPU, 4 GB RAM and 50 GB disk. On that machine a full build takes about **18 hours**; with 8+ vCPU and 16+ GB RAM, expect 2–3 hours.
+
+### 1. Prerequisites
+
+```bash
+sudo dnf install -y git gcc gcc-c++ make python3.12 python3.12-devel libcurl-devel openssl-devel \
+  cyrus-sasl-devel openldap-devel krb5-devel xz-devel zlib-devel rpm-build
+```
+
+Bazel downloads its own GCC 14 toolchain, so the system compiler version doesn't matter.
+
+On a small machine (≤ 8 GB RAM), add swap first, or compiler processes get killed for running out of memory:
+
+```bash
+sudo fallocate -l 16G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap defaults 0 0' | sudo tee -a /etc/fstab
+```
+
+### 2. Build mongod, mongos and perconadecrypt
+
+```bash
+git clone https://github.com/maheswarareddyuma/psmdb-s390x.git
+cd psmdb-s390x
+./build-psmdb.sh                     # small-machine defaults: 2 jobs, 2 GB Bazel heap
+JOBS=8 HEAP=6g ./build-psmdb.sh      # bigger machine
+```
+
+`build-psmdb.sh` clones tag `psmdb-8.3.13-4` into `~/psmdb`, applies [the s390x patch](patches/psmdb-8.3.13-4-s390x.patch), installs Bazel, and builds with Percona's release profile (`--config=psmdb_opt_release`: optimized, statically linked, Community only). Outputs:
+
+- `~/psmdb/bazel-bin/install/bin/{mongod,mongos}`
+- `~/psmdb/bazel-bin/src/mongo/tools/perconadecrypt`
+
+Run it inside `tmux`/`screen` or with `nohup`, because it takes hours. If it stops, run it again: Bazel reuses everything already compiled.
+
+| Problem | Fix |
+|---|---|
+| `Killed signal terminated program cc1plus` | `JOBS=1 ./build-psmdb.sh` (and check swap) |
+| `bazel ran out of memory` / `Java heap space` | `HEAP=3g ./build-psmdb.sh` |
+| `Target //:install-mongod was skipped` | the patch wasn't applied; `cd ~/psmdb && git apply ~/psmdb-s390x/patches/psmdb-8.3.13-4-s390x.patch` |
+
+### 3. Build the test shell (needed for the tests and the shell RPM)
+
+```bash
+TARGETS="install-mongo //src/mongo/tools/mongobridge_tool:mongobridge" ./build-psmdb.sh
+```
+
+### 4. Build the RPMs
+
+```bash
+./build-rpm.sh        # writes ~/rpmbuild/RPMS/s390x/*.rpm
+```
+
+[`rpm/psmdb-s390x.spec`](rpm/psmdb-s390x.spec) packages the binaries with Percona's own config, systemd unit, helper scripts and SELinux module, following Percona's `percona-server-mongodb.spec.template`. Percona's telemetry agent is left out.
+
+## Run the tests
+
+Quick smoke test (about 1 minute): encryption at rest, hot backup and restore, audit log.
+
+```bash
+python3.12 -m pip install --user pymongo
+PY=python3.12 ./smoke-test.sh
+```
+
+Percona's and MongoDB's official test suites, using MongoDB's test runner (resmoke):
+
+```bash
+python3.12 -m venv ~/rvenv
+~/rvenv/bin/pip install -r requirements-resmoke.txt
+./run-tests.sh                                   # all suites below, one after another
+SUITES="tde_cbc audit" ./run-tests.sh            # pick suites
+```
+
+Results go to `~/test-results/`: one `.log` and one `.json` report per suite, plus `summary.txt`. The default suites:
+
+| Suite | Source | What it covers |
+|---|---|---|
+| `percona_no_passthrough_with_mongod` | Percona | Percona-specific server tests |
+| `tde_cbc`, `tde_gcm` | Percona | encryption at rest: wrong keys, key files, replica sets |
+| `audit` | Percona | audit log |
+| `redaction` | Percona | log redaction |
+| `backup`, `backup_tde_cbc`, `backup_tde_gcm` | Percona | hot backup, plain and encrypted |
+| `core_tde_cbc` | MongoDB core tests, Percona encryption config | ~1,450 core tests with encryption at rest on |
+| `core` | MongoDB | ~1,450 core tests |
+
+The full suites need hours on a 2-vCPU machine. Use `JOBS=N` on bigger machines.
 
 ## What the patch changes
 
-Percona's bundled libraries only carry x86_64/aarch64 configuration. Two are marked x86/ARM-only, which makes Bazel silently skip `mongod` and `mongos` on s390x; a third has no s390x `config.h`. [`patches/psmdb-8.3.13-4-s390x.patch`](patches/psmdb-8.3.13-4-s390x.patch):
+Percona's bundled libraries only carry x86_64/aarch64 configuration. Two are marked x86/ARM-only, which makes Bazel **silently skip** `mongod` and `mongos` on s390x while still reporting success; a third has no s390x `config.h`. [`patches/psmdb-8.3.13-4-s390x.patch`](patches/psmdb-8.3.13-4-s390x.patch):
 
-- **libbson** — adds `build_linux_s390x/` config with big-endian byte order (`BSON_BYTE_ORDER 4321`, `BSON_EXTRA_ALIGN 1`), matching upstream MongoDB's own s390x config.
-- **aws-sdk-cpp** (used by hot backup to S3) — adds a `platform/linux_s390x/` config with CPU-specific acceleration off, so the portable C code paths are used.
-- **libarchive** (used by hot backup) — adds `platform/build_linux_s390x/config.h`. The x86_64 and aarch64 configs are identical and libarchive handles byte order in portable code, so s390x uses the same settings.
+- **libbson**: adds a `build_linux_s390x/` config with big-endian byte order (`BSON_BYTE_ORDER 4321`, `BSON_EXTRA_ALIGN 1`), matching upstream MongoDB's own s390x config.
+- **aws-sdk-cpp** (hot backup to S3): adds a `platform/linux_s390x/` config with CPU-specific acceleration off, so the portable C code is used.
+- **libarchive** (hot backup): adds `platform/build_linux_s390x/config.h`. The x86_64 and aarch64 configs are identical and libarchive handles byte order in portable code.
 
-The build also switches the allocator to `tcmalloc-gperf`, because Percona's default `tcmalloc-google` does not support s390x.
+The build also uses the `tcmalloc-gperf` allocator, because Percona's default `tcmalloc-google` doesn't support s390x.
 
-## Build
+## Not tested yet
 
-On RHEL 9 s390x:
-
-```bash
-sudo dnf install -y git gcc gcc-c++ make python3.12 libcurl-devel openssl-devel \
-  cyrus-sasl-devel openldap-devel krb5-devel xz-devel zlib-devel
-git clone https://github.com/maheswarareddyuma/psmdb-s390x.git
-cd psmdb-s390x
-./build-psmdb.sh                    # small VM defaults (2 jobs, 2 GB Bazel heap)
-JOBS=16 HEAP=8g ./build-psmdb.sh    # bigger machine
-```
-
-On a 2-vCPU / 4 GB VM, add swap first (about 16 GB) and expect 8–11 hours. Binaries end up in `~/psmdb/bazel-bin/install/bin/` and `~/psmdb/bazel-bin/src/mongo/tools/perconadecrypt`.
-
-## Planned
-
-- Test suite runs on s390x, focusing on Percona features that are new to big-endian: encryption at rest (key file, Vault, KMIP) with `perconadecrypt`, hot backup (local and S3), audit log, LDAP.
-- RPM packages for RHEL 9 s390x, signed, in GitHub Releases and a dnf repository.
-- CI on IBM Z.
+`perconadecrypt` on a real rollback file, Vault/KMIP key servers, LDAP/Kerberos, hot backup to S3, sharding and replication suites, and long-running stress tests.
 
 ## License
 
-Build scripts in this repository: MIT (see [LICENSE](LICENSE)). Code inside the patches stays under the license of the upstream file it modifies.
-Percona Server for MongoDB itself is licensed under the [SSPL](https://github.com/percona/percona-server-mongodb/blob/master/LICENSE-Community.txt); source: https://github.com/percona/percona-server-mongodb
+Build scripts and spec in this repository: MIT (see [LICENSE](LICENSE)). Code inside the patch stays under the license of the upstream file it modifies. Percona Server for MongoDB itself is licensed under the [SSPL](https://github.com/percona/percona-server-mongodb/blob/master/LICENSE-Community.txt); source: https://github.com/percona/percona-server-mongodb (tag `psmdb-8.3.13-4`).

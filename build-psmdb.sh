@@ -13,6 +13,7 @@ VERSION=${TAG#psmdb-}                 # e.g. 8.3.13-4
 SRC=${SRC:-$HOME/psmdb}
 JOBS=${JOBS:-2}
 HEAP=${HEAP:-2g}
+TARGETS=${TARGETS:-install-mongod install-mongos //src/mongo/tools:perconadecrypt}
 HERE=$(cd "$(dirname "$0")" && pwd)
 
 if [ ! -d "$SRC" ]; then
@@ -29,4 +30,4 @@ exec nice -n 19 ionice -c3 bazel --host_jvm_args=-Xmx$HEAP build --config=psmdb_
   --define=MONGO_VERSION=$VERSION --define=GIT_COMMIT_HASH=$(git rev-parse HEAD) \
   --debug_symbols=False --//bazel/config:allocator=tcmalloc-gperf \
   --jobs=$JOBS --local_resources=cpu=$JOBS --local_resources=memory=HOST_RAM*.7 \
-  install-mongod install-mongos //src/mongo/tools:perconadecrypt
+  $TARGETS
