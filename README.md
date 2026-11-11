@@ -31,8 +31,21 @@ sudo systemctl enable --now mongod
 |---|---|
 | `psmdb-s390x-server` | `mongod`, `perconadecrypt`, `mongobridge`, systemd unit, `/etc/mongod.conf`, SELinux module, Percona helper scripts |
 | `psmdb-s390x-mongos` | `mongos` |
-| `psmdb-s390x-shell` | legacy `mongo` shell (used by the test suites; use `mongosh` for day-to-day work) |
+| `psmdb-s390x-shell` | legacy `mongo` shell (used by the test suites; use [`mongosh`](#mongosh-the-mongodb-shell) for day-to-day work) |
 | `psmdb-s390x` | metapackage: server + mongos |
+
+### mongosh (the MongoDB Shell)
+
+MongoDB publishes official s390x builds of `mongosh`. Install it straight from MongoDB's release (tested with this server: auth, reads and writes, Percona `buildInfo`):
+
+```bash
+sudo dnf install -y https://github.com/mongodb-js/mongosh/releases/download/v2.14.1/mongodb-mongosh-2.14.1.s390x.rpm
+mongosh --version
+```
+
+Other s390x formats (tarball, shared-OpenSSL RPMs) are on the [mongosh release page](https://github.com/mongodb-js/mongosh/releases/tag/v2.14.1) and at [mongodb.com/try/download/shell](https://www.mongodb.com/try/download/shell).
+
+It isn't included in this project's release because the official package bundles `mongosh_crypt_v1.so`, which is licensed under MongoDB's Customer Agreement and may not be redistributed (section 4(b)). `mongosh` itself is Apache-2.0.
 
 Data goes in `/var/lib/mongo` and logs in `/var/log/mongo`, as with Percona's own RHEL packages. Access control is **off** by default; run `sudo percona-server-mongodb-enable-auth.sh` to turn it on. The packages conflict with Percona's and MongoDB's official packages because they install the same files.
 
