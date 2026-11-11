@@ -112,6 +112,19 @@ python3.12 -m venv ~/rvenv
 SUITES="tde_cbc audit" ./run-tests.sh            # pick suites
 ```
 
+Replica set with authentication, encryption at rest, failover, and hot backup to S3 plus restore (about 5 minutes; touches only `psmdb-s390x-test/` in the bucket and cleans up):
+
+```bash
+cat > ~/.s3test.env <<'EOF'      # chmod 600; never commit this file
+S3_ENDPOINT=objectstore.example.com
+S3_BUCKET=my-bucket
+S3_ACCESS_KEY=...
+S3_SECRET_KEY=...
+EOF
+chmod 600 ~/.s3test.env
+set -a; . ~/.s3test.env; set +a; ~/rvenv/bin/python rs-s3-test.py
+```
+
 Results go to `~/test-results/`: one `.log` and one `.json` report per suite, plus `summary.txt`. The default suites:
 
 | Suite | Source | What it covers |
@@ -142,9 +155,13 @@ Percona's bundled libraries only carry x86_64/aarch64 configuration. Two are mar
 
 The build also uses the `tcmalloc-gperf` allocator, because Percona's default `tcmalloc-google` doesn't support s390x.
 
+## Known issue
+
+**An interrupted S3 hot backup crashes mongod** (Percona bug, every platform): a step-down, priority takeover, `killOp` or shutdown during `createBackup` to S3 terminates the server instead of failing the command. Run S3 backups on a member that won't become primary meanwhile. Details in [TEST-RESULTS.md](TEST-RESULTS.md#bug-found-mongod-crashes-if-an-s3-backup-is-interrupted-percona-not-s390x-specific).
+
 ## Not tested yet
 
-`perconadecrypt` on a real rollback file, Vault/KMIP key servers, LDAP/Kerberos, OIDC, hot backup to S3, the dedicated `replica_sets*`/`sharding*`/`concurrency*` suites, C++ unit tests, and long-running stress tests.
+`perconadecrypt` on a real rollback file, Vault/KMIP key servers, LDAP/Kerberos, OIDC, the dedicated `replica_sets*`/`sharding*`/`concurrency*` suites, C++ unit tests, and long-running stress tests.
 
 ## License
 

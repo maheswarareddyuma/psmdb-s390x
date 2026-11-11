@@ -33,6 +33,38 @@ Counts are test files (`.js`). Resmoke's own totals are higher because they also
 
 \* `jstests/core/testing/certs_are_generated.js` failed in the full run because the test harness's TLS certificates (`<installDir>/x509/`) hadn't been generated. It checks the harness, not the server. It passed in both suites when re-run after generating the certificates (`*.certs_rerun.json`). `run-tests.sh` now generates them automatically.
 
+## Replica set with authentication, and hot backup to S3
+
+[`rs-s3-test.py`](rs-s3-test.py), run 2026-11-11 against an S3-compatible object store (E2E Networks, path-style addressing, HTTPS). **All 6 checks passed:**
+
+| Check | Result |
+|---|---|
+| 3-member replica set, keyFile internal auth, encryption at rest on every member | ✅ |
+| Anonymous write denied; wrong password denied; `readWrite` user can't write to another db or create users | ✅ |
+| 10,000 `w:majority` writes visible on all 3 members; double values exact (big-endian check) | ✅ |
+| Failover with `replSetStepDown`: new primary elected, writes continue | ✅ |
+| Percona hot backup from a secondary straight to S3 (`createBackup` with `s3`): 58 files, 111.8 MB, 72 s | ✅ |
+| Download from S3; collection files encrypted (no plaintext); `mongod --auth` starts on it with the same key; all 10,002 docs and the users intact; anonymous read denied | ✅ |
+
+The S3 transfer hit 8 HTTP timeouts on a slow route (curl code 28). The AWS SDK retried them and the backup completed.
+
+### Bug found: mongod crashes if an S3 backup is interrupted (Percona, not s390x-specific)
+
+In an earlier run, the member taking the backup became primary again mid-upload (priority takeover after the failover test). Instead of failing the `createBackup` command, **mongod terminated**:
+
+```
+terminate() called. An exception is active
+DBException::toString(): InterruptedDueToReplStateChange: operation was interrupted
+  mongo::error_details::throwExceptionForStatus
+  Aws::Http::CurlHttpClient::MakeRequest
+  ...
+  Aws::S3::S3Client::UploadPart
+```
+
+Cause: the S3 transfer progress callback in `src/mongo/db/storage/wiredtiger/wiredtiger_kv_engine.cpp` (around line 2672, `psmdb-8.3.13-4`) calls `opCtx->checkForInterrupt()`. That throws a C++ exception from inside the AWS SDK's curl transfer thread, where it can't be caught, so the process aborts. The same would happen on x86_64 and aarch64 on any interruption during an S3 backup: step-down, priority takeover, `killOp`, or shutdown. A fix would use `checkForInterruptNoAssert()` in the callback and cancel the transfer (`backupCancelled`) instead of throwing.
+
+Until it's fixed: run S3 backups on a member that won't become primary during the backup (for example `priority: 0`, or equal priorities with no planned step-downs), and don't kill a running S3 backup.
+
 ## Problems found while setting up, and their fixes
 
 A first run (`summary-run1-before-env-fixes.txt`) had 18 failures. All came from the VM's configuration, not from s390x or the build:
@@ -51,6 +83,6 @@ A first run (`summary-run1-before-env-fixes.txt`) had 18 failures. All came from
 
 ## Not covered
 
-Suites that need external services or more machine: LDAP/Kerberos (`ldapauthz`, `external_auth*`), Vault/KMIP key management, OIDC, AWS S3 hot backup, `replica_sets*`, `sharding*`, `concurrency*`, `aggregation*`, and the C++ unit tests. Run them with `SUITES="..." ./run-tests.sh`.
+Suites that need external services or more machine: LDAP/Kerberos (`ldapauthz`, `external_auth*`), Vault/KMIP key management, OIDC, the dedicated `replica_sets*`, `sharding*`, `concurrency*`, `aggregation*`, and the C++ unit tests. Run them with `SUITES="..." ./run-tests.sh`.
 
 Also verified separately: RPM install with `dnf`, `mongod` under systemd with SELinux enforcing (no denials), and [`smoke-test.sh`](smoke-test.sh) (encryption at rest, hot backup and restore, audit).
